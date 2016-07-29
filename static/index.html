@@ -3,12 +3,41 @@
 <head>
   <title></title>
   <script>
-    window.addEventListener("gamepadconnected", function() {
-      alert("Controller Connected");
+    var connected = false,
+    gp, connIndex = -1;
+    document.addEventListener("DOMContentLoaded", function() {
+      setInterval(checkHasGamepads, 500);
+      updateStatus();
     });
+
+    function checkHasGamepads() {
+      gp = navigator.getGamepads();
+      console.log(gp);
+      var pre = connected;
+      connIndex = -1;
+      var i = 0;
+      var hadConn;
+      for(var key of gp) {
+        if(key != undefined && key != "length") {
+          hadConn = true;
+          console.log(key, i);
+          connIndex = i;
+          connected = true;
+          break;
+        }
+        i++;
+      }
+      if(!hadConn)
+        connected = false;
+      if(connected != pre)
+        updateStatus();
+    }
+
+    function updateStatus() {
+      document.body.innerHTML = connected ? (`Gamepad ${connIndex + 1} Connected`) : "Disconnected";
+    }
   </script>
 </head>
 <body>
-
 </body>
 </html>
