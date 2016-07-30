@@ -4,15 +4,14 @@
   <title></title>
   <script>
     var connected = false,
-    gp, connIndex = -1;
+    gp, connIndex = -1, loop;
     document.addEventListener("DOMContentLoaded", function() {
-      setInterval(checkHasGamepads, 500);
+      var loop = setInterval(checkHasGamepads, 100);
       updateStatus();
     });
 
     function checkHasGamepads() {
       gp = navigator.getGamepads();
-      console.log(gp);
       var pre = connected;
       connIndex = -1;
       var i = 0;
@@ -20,7 +19,6 @@
       for(var key of gp) {
         if(key != undefined && key != "length") {
           hadConn = true;
-          console.log(key, i);
           connIndex = i;
           connected = true;
           break;
@@ -31,6 +29,29 @@
         connected = false;
       if(connected != pre)
         updateStatus();
+      if(connected) {
+        sendStatus();
+      }
+    }
+
+    function getStatus() {
+      var controller = navigator.getGamepads()[connIndex];
+      var direction;
+      if(controller.axes[0] == 0 || Math.abs(controller.axes[0]) < 0.15) {
+        direction = 0;
+      } else if(controller.axes[0] > 0) {
+        direction = 1;
+      } else {
+        direction = 0;
+      }
+      var acceleration;
+      if(controller.buttons[7].pressed) {
+        acceleration = 1;
+      } else if (controller.buttons[6].pressed) {
+        acceleration = -1;
+      } else {
+        acceleration = 0;
+      }
     }
 
     function updateStatus() {
