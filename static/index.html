@@ -5,6 +5,8 @@
   <script>
     var connected = false,
     gp, connIndex = -1, loop;
+    var lastStatus = {};
+    // var socket = io();
     document.addEventListener("DOMContentLoaded", function() {
       var loop = setInterval(checkHasGamepads, 100);
       updateStatus();
@@ -27,11 +29,22 @@
       }
       if(!hadConn)
         connected = false;
-      if(connected != pre)
-        updateStatus();
+      var s;
       if(connected) {
-        sendStatus();
+        s = getStatus();
       }
+      if(connected != pre || statusChanged(s))
+        updateStatus();
+    }
+
+    function statusChanged(s) {
+      if(s.direction != lastStatus.direction ||
+         s.acceleration != lastStatus.acceleration) {
+        lastStatus = s;
+        return true;
+      }
+      lastStatus = s;
+      return false;
     }
 
     function getStatus() {
@@ -39,23 +52,50 @@
       var direction;
       if(controller.axes[0] == 0 || Math.abs(controller.axes[0]) < 0.15) {
         direction = 0;
-      } else if(controller.axes[0] > 0) {
-        direction = 1;
       } else {
-        direction = 0;
+        direction = parseFloat(controller.axes[0].toFixed(2));
       }
-      var acceleration;
+      var acceleration = 0;
       if(controller.buttons[7].pressed) {
-        acceleration = 1;
-      } else if (controller.buttons[6].pressed) {
-        acceleration = -1;
-      } else {
-        acceleration = 0;
+        acceleration += controller.buttons[7].value;
       }
+      if (controller.buttons[6].pressed) {
+        acceleration -= controller.buttons[6].value;
+      }
+      var s = {direction: direction, acceleration: parseFloat(acceleration.toFixed(2))};
+      console.log(typeof s, s);
+      return s;
+    }
+
+    function sendStatus(s) {
+      if(!socket.connected) socket.connect();
+      socket.emit("status",s);
     }
 
     function updateStatus() {
-      document.body.innerHTML = connected ? (`Gamepad ${connIndex + 1} Connected`) : "Disconnected";
+      var dir = getDirectionString(lastStatus.direction);
+      var accel = getAccelerationString(lastStatus.acceleration);
+      console.log(typeof lastStatus);
+      document.body.innerHTML = connected ? (`Gamepad ${connIndex + 1} Connected<br>Direction: ${dir}<br>Acceleration: ${accel}`) : "Disconnected";
+    }
+
+    function getDirectionString(d) {
+      var dirs = ["Left", "Straight", "Right"];
+      var dirIndex = 0;
+      if(d > 0) dirIndex = 1;
+      else if (d < 0) dirIndex = -1;
+      dirIndex++;
+      return dirs[dirIndex];
+    }
+
+    function getAccelerationString(a) {
+      var dirs = ["Backward", "Static", "Forward"];
+      var dirIndex = 0;
+      if(a > 0) dirIndex = 1;
+      else if(a < 0) dirIndex = -1;
+      dirIndex++;
+      var p = parseInt(Math.abs(a * 100).toFixed(2));
+      return `${dirs[dirIndex]} ${p}%`;
     }
   </script>
 </head>
